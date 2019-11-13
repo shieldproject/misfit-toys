@@ -150,8 +150,7 @@ cmd_backup() {
 
 cmd_restore() {
   cmd_validate
-  copy_bytes "$backup_source" "/dev/fd/1"
-  copy_bytes "$log_source"    "/dev/fd/2"
+  copy_bytes "$log_source"    "/dev/fd/2" "$log_size"
   sleep "$sleep_time"
 }
 
