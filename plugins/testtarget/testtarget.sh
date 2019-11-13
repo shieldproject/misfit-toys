@@ -21,11 +21,21 @@ log_source=/dev/urandom
 backup_source=/dev/urandom
 
 parse_input_json() {
-  sleep_time="$(   jq -Mr '.sleep_time'   <<<"$endpoint")"
-  log_size="$(     jq -Mr '.log_size'     <<<"$endpoint")"
-  backup_size="$(  jq -Mr '.backup_size'  <<<"$endpoint")"
-  log_source="$(   jq -Mr '.log_source'   <<<"$endpoint")"
-  backup_source="$(jq -Mr '.backup_source'<<<"$endpoint")"
+  if jq -Mre 'has("sleep_time")'    <<<"$endpoint" >/dev/null; then
+    sleep_time="$(   jq -Mr '.sleep_time'   <<<"$endpoint")"
+  fi
+  if jq -Mre 'has("log_size")'      <<<"$endpoint" >/dev/null; then
+    log_size="$(     jq -Mr '.log_size'     <<<"$endpoint")"
+  fi
+  if jq -Mre 'has("backup_size")'   <<<"$endpoint" >/dev/null; then
+    backup_size="$(  jq -Mr '.backup_size'  <<<"$endpoint")"
+  fi
+  if jq -Mre 'has("log_source")'    <<<"$endpoint" >/dev/null; then
+    log_source="$(   jq -Mr '.log_source'   <<<"$endpoint")"
+  fi
+  if jq -Mre 'has("backup_source")' <<<"$endpoint" >/dev/null; then
+    backup_source="$(jq -Mr '.backup_source'<<<"$endpoint")"
+  fi
 }
 
 is_number()          { [[ "$1" =~ ^-?[0-9]+$ ]]; return $?; }
@@ -67,7 +77,7 @@ copy_bytes() {
 #============================#
 
 cmd_info() {
-  cat <<'EOF'
+  cat <<EOF
 {
   "name":    "Testing Tools Target Plugin",
   "author":  "Thomas Mitchell",
@@ -83,7 +93,7 @@ cmd_info() {
       "type":    "string",
       "title":   "Sleep Time",
       "help":    "The number of seconds to sleep after finishing writing.",
-      "default": "0"
+      "default": "${sleep_time}"
     },
     {
       "mode":    "target",
@@ -91,7 +101,7 @@ cmd_info() {
       "type":    "string",
       "title":   "Log Size",
       "help":    "The number of bytes to write out to the log.",
-      "default": "0"
+      "default": "${log_size}"
     },
     {
       "mode":    "target",
@@ -99,7 +109,7 @@ cmd_info() {
       "type":    "string",
       "title":   "Backup Size",
       "help":    "The number of bytes to output as the backup archive.",
-      "default": "0"
+      "default": "${backup_size}"
     },
     {
       "mode":    "target",
@@ -107,7 +117,7 @@ cmd_info() {
       "type":    "abspath",
       "title":   "Log Source",
       "help":    "The file to read bytes from to form the log",
-      "default": "/dev/urandom"
+      "default": "${log_source}"
     },
     {
       "mode":    "target",
@@ -115,7 +125,7 @@ cmd_info() {
       "type":    "abspath",
       "title":   "Backup Source",
       "help":    "The file to read bytes from to form the backup archive",
-      "default": "/dev/urandom"
+      "default": "${backup_source}"
     }
   ]
 }
@@ -132,7 +142,6 @@ cmd_validate() {
 }
 
 cmd_backup() {
-  parse_input_json
   cmd_validate
   copy_bytes "$backup_source" "/dev/fd/1" "$backup_size"
   copy_bytes "$log_source"    "/dev/fd/2" "$log_size"
@@ -140,7 +149,6 @@ cmd_backup() {
 }
 
 cmd_restore() {
-  parse_input_json
   cmd_validate
   copy_bytes "$backup_source" "/dev/fd/1"
   copy_bytes "$log_source"    "/dev/fd/2"
